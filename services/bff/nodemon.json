@@ -1,0 +1,6 @@
+{
+  "watch": ["src"],
+  "ext": "ts,graphql",
+  "ignore": ["src/**/*.test.ts", "src/**/*.generated.ts"],
+  "exec": "graphql-codegen && tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/index.js"
+}

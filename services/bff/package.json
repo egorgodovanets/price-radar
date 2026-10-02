@@ -1,0 +1,34 @@
+{
+  "name": "@price-radar/bff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning ../../node_modules/jest/bin/jest.js --passWithNoTests",
+    "codegen": "graphql-codegen"
+  },
+  "dependencies": {
+    "@apollo/datasource-rest": "^6.4.1",
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/express5": "^1.1.2",
+    "@graphql-tools/schema": "^10.1.3",
+    "express": "^5.2.1",
+    "graphql": "^16.14.2",
+    "graphql-redis-subscriptions": "^2.7.0",
+    "graphql-subscriptions": "^3.0.0",
+    "graphql-ws": "^6.3.0",
+    "ioredis": "^5.11.1",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@eddeee888/gcg-typescript-resolver-files": "^0.19.0",
+    "@graphql-codegen/cli": "^7.4.3",
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.2"
+  }
+}

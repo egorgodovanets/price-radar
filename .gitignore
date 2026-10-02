@@ -1,0 +1,6 @@
+agent-instructions.txt
+node_modules
+dist
+coverage
+.env
+*.tsbuildinfo
