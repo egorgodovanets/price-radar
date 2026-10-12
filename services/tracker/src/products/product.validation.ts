@@ -1,10 +1,5 @@
+import { isPlainObject, type ValidationResult } from '../common/validation.js';
 import { CATEGORIES, type Category, type CreateProductInput, type ProductAttributes } from './product.js';
-
-export type ValidationResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function isHttpUrl(value: unknown): value is string {
   if (typeof value !== 'string' || !URL.canParse(value)) return false;

@@ -1,8 +1,6 @@
-import { MongoServerError, ObjectId, type Collection, type Db } from 'mongodb';
+import { ObjectId, type Collection, type Db } from 'mongodb';
+import { isDuplicateKeyError, toObjectId } from '../common/mongo.js';
 import type { CreateProductInput, ProductDocument } from './product.js';
-
-const DUPLICATE_KEY_ERROR = 11000;
-const OBJECT_ID_HEX = /^[a-f\d]{24}$/i;
 
 export class DuplicateProductError extends Error {
   constructor(url: string) {
@@ -29,9 +27,7 @@ export class ProductRepository {
     try {
       await this.collection.insertOne(product);
     } catch (error) {
-      if (error instanceof MongoServerError && error.code === DUPLICATE_KEY_ERROR) {
-        throw new DuplicateProductError(input.url);
-      }
+      if (isDuplicateKeyError(error)) throw new DuplicateProductError(input.url);
       throw error;
     }
     return product;
@@ -42,7 +38,8 @@ export class ProductRepository {
   }
 
   findById(id: string): Promise<ProductDocument | null> {
-    if (!OBJECT_ID_HEX.test(id)) return Promise.resolve(null);
-    return this.collection.findOne({ _id: new ObjectId(id) });
+    const _id = toObjectId(id);
+    if (!_id) return Promise.resolve(null);
+    return this.collection.findOne({ _id });
   }
 }

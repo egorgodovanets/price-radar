@@ -3,6 +3,8 @@ import { MongoClient } from 'mongodb';
 import { createApp } from './app.js';
 import type { Config } from './config.js';
 import { ProductRepository } from './products/product.repository.js';
+import { WatchRepository } from './watches/watch.repository.js';
+import { WatchService } from './watches/watch.service.js';
 
 export interface TrackerServer {
   httpServer: http.Server;
@@ -25,9 +27,11 @@ export async function createServer(config: Config): Promise<TrackerServer> {
   try {
     const db = client.db(config.mongoDb);
     const products = new ProductRepository(db);
-    await products.ensureIndexes();
+    const watchRepository = new WatchRepository(db);
+    await Promise.all([products.ensureIndexes(), watchRepository.ensureIndexes()]);
 
-    const httpServer = http.createServer(createApp({ products }));
+    const watches = new WatchService({ products, watches: watchRepository });
+    const httpServer = http.createServer(createApp({ products, watches }));
 
     return {
       httpServer,

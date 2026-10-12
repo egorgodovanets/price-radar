@@ -1,4 +1,5 @@
 agent-instructions.txt
+learning/
 node_modules
 dist
 coverage
