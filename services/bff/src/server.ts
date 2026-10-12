@@ -4,8 +4,14 @@ import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { expressMiddleware } from '@as-integrations/express5';
 import { makeExecutableSchema } from '@graphql-tools/schema';
+import type { Config } from './config.js';
+import type { GraphQLContext } from './context.js';
+import { TrackerAPI } from './dataSources/TrackerAPI.js';
 import { typeDefs } from './schema/typeDefs.generated.js';
 import { resolvers } from './schema/resolvers.generated.js';
+
+/** What createServer needs from Config; the port is chosen by whoever calls listen(). */
+export type ServerOptions = Pick<Config, 'trackerUrl'>;
 
 export interface BffServer {
   /** HTTP server wrapping the Express app; WebSocket subscriptions will attach to it later. */
@@ -19,7 +25,7 @@ export interface BffServer {
  * with GET /health and POST /graphql routes.
  * Does not call listen(): the caller picks the port (index.ts uses config, tests use port 0).
  */
-export async function createServer(): Promise<BffServer> {
+export async function createServer({ trackerUrl }: ServerOptions): Promise<BffServer> {
   // One schema object for every transport: HTTP now, WebSocket subscriptions later.
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
@@ -27,7 +33,7 @@ export async function createServer(): Promise<BffServer> {
   // Own the HTTP server instead of app.listen(), so Apollo can drain it and ws can attach to it.
   const httpServer = http.createServer(app);
 
-  const apollo = new ApolloServer({
+  const apollo = new ApolloServer<GraphQLContext>({
     schema,
     // On apollo.stop(): stop accepting connections, wait for in-flight requests, close the server.
     plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
@@ -40,7 +46,18 @@ export async function createServer(): Promise<BffServer> {
   });
 
   // express.json() parses the POST body into req.body, which Apollo reads the operation from.
-  app.use('/graphql', express.json(), expressMiddleware(apollo));
+  app.use(
+    '/graphql',
+    express.json(),
+    expressMiddleware(apollo, {
+      // Runs once per operation. Data sources are per operation too:
+      // their request deduplication must not leak between users.
+      context: () =>
+        Promise.resolve({
+          dataSources: { tracker: new TrackerAPI(trackerUrl, { cache: apollo.cache }) },
+        }),
+    }),
+  );
 
   return {
     httpServer,

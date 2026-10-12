@@ -1,0 +1,12 @@
+"One observed price of a product."
+type PricePoint {
+  id: ID!
+  price: Money!
+  "ISO 8601."
+  observedAt: String!
+}
+
+extend type Mutation {
+  "Adds a price by hand; the scraper does the same through Tracker's REST API."
+  recordPrice(productId: ID!, price: MoneyInput!): PricePoint!
+}

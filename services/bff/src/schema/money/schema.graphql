@@ -1,0 +1,17 @@
+"Currencies of the shops we track."
+enum Currency {
+  UAH
+  EUR
+}
+
+"A price in major units: hryvnias, euros."
+type Money {
+  amount: Float!
+  currency: Currency!
+}
+
+input MoneyInput {
+  "Must be greater than 0."
+  amount: Float!
+  currency: Currency!
+}

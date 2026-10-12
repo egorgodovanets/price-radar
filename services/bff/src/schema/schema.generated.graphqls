@@ -1,3 +1,120 @@
+input AddProductInput {
+  attributes: [ProductAttributeInput!]! = []
+  category: Category!
+  title: String!
+
+  """Product page in a supported shop; one product per URL."""
+  url: String!
+}
+
+"""Values match Tracker, which stores categories in lower case."""
+enum Category {
+  electronics
+  sport
+}
+
+input CreateWatchInput {
+  chatId: String!
+  productId: ID!
+  targetPrice: MoneyInput!
+}
+
+"""Currencies of the shops we track."""
+enum Currency {
+  EUR
+  UAH
+}
+
+"""A price in major units: hryvnias, euros."""
+type Money {
+  amount: Float!
+  currency: Currency!
+}
+
+input MoneyInput {
+  """Must be greater than 0."""
+  amount: Float!
+  currency: Currency!
+}
+
+type Mutation {
+  addProduct(input: AddProductInput!): Product!
+  createWatch(input: CreateWatchInput!): Watch!
+
+  """False when the watch did not exist."""
+  deleteWatch(id: ID!): Boolean!
+
+  """
+  Adds a price by hand; the scraper does the same through Tracker's REST API.
+  """
+  recordPrice(price: MoneyInput!, productId: ID!): PricePoint!
+}
+
+"""One observed price of a product."""
+type PricePoint {
+  id: ID!
+
+  """ISO 8601."""
+  observedAt: String!
+  price: Money!
+}
+
+type Product {
+  attributes: [ProductAttribute!]!
+  category: Category!
+
+  """ISO 8601."""
+  createdAt: String!
+
+  """Latest recorded price; null until the first price arrives."""
+  currentPrice: Money
+  id: ID!
+
+  """Recorded prices, newest first. limit: 1 to 100."""
+  priceHistory(limit: Int! = 30): [PricePoint!]!
+
+  """ISO 8601 time of currentPrice."""
+  priceUpdatedAt: String
+  title: String!
+  url: String!
+  watches: [Watch!]!
+}
+
+"""
+One category-specific detail, e.g. name "color", value "blue".
+GraphQL has no map type, so Tracker's attributes object travels as a list of pairs.
+"""
+type ProductAttribute {
+  name: String!
+  value: String!
+}
+
+input ProductAttributeInput {
+  name: String!
+  value: String!
+}
+
 type Query {
-  hello: String!
+  """Null when the product does not exist."""
+  product(id: ID!): Product
+
+  """Newest first."""
+  products: [Product!]!
+
+  """All watches, or only those of one product."""
+  watches(productId: ID): [Watch!]!
+}
+
+"""A request to be notified in Telegram when a product gets cheap enough."""
+type Watch {
+  """Telegram chat that receives the notification."""
+  chatId: String!
+
+  """ISO 8601."""
+  createdAt: String!
+  id: ID!
+  product: Product!
+
+  """Notify when the price drops to this value or below."""
+  targetPrice: Money!
 }

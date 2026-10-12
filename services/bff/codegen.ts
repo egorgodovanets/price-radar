@@ -11,6 +11,10 @@ const config: CodegenConfig = {
       scalarsModule: false,
       typesPluginsConfig: {
         useTypeImports: true,
+        // Third resolver argument; the path is relative to src/schema/types.generated.ts.
+        contextType: '../context.js#GraphQLContext',
+        // 'UAH' | 'EUR' string unions instead of TS enums, so Tracker JSON fits without casts.
+        enumsAsTypes: true,
       },
     }),
   },

@@ -1,0 +1,28 @@
+"A request to be notified in Telegram when a product gets cheap enough."
+type Watch {
+  id: ID!
+  "Telegram chat that receives the notification."
+  chatId: String!
+  "Notify when the price drops to this value or below."
+  targetPrice: Money!
+  "ISO 8601."
+  createdAt: String!
+  product: Product!
+}
+
+input CreateWatchInput {
+  productId: ID!
+  chatId: String!
+  targetPrice: MoneyInput!
+}
+
+extend type Query {
+  "All watches, or only those of one product."
+  watches(productId: ID): [Watch!]!
+}
+
+extend type Mutation {
+  createWatch(input: CreateWatchInput!): Watch!
+  "False when the watch did not exist."
+  deleteWatch(id: ID!): Boolean!
+}

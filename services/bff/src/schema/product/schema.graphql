@@ -1,0 +1,55 @@
+"Values match Tracker, which stores categories in lower case."
+enum Category {
+  sport
+  electronics
+}
+
+"""
+One category-specific detail, e.g. name "color", value "blue".
+GraphQL has no map type, so Tracker's attributes object travels as a list of pairs.
+"""
+type ProductAttribute {
+  name: String!
+  value: String!
+}
+
+input ProductAttributeInput {
+  name: String!
+  value: String!
+}
+
+type Product {
+  id: ID!
+  title: String!
+  url: String!
+  category: Category!
+  attributes: [ProductAttribute!]!
+  "Latest recorded price; null until the first price arrives."
+  currentPrice: Money
+  "ISO 8601 time of currentPrice."
+  priceUpdatedAt: String
+  "ISO 8601."
+  createdAt: String!
+  "Recorded prices, newest first. limit: 1 to 100."
+  priceHistory(limit: Int! = 30): [PricePoint!]!
+  watches: [Watch!]!
+}
+
+input AddProductInput {
+  title: String!
+  "Product page in a supported shop; one product per URL."
+  url: String!
+  category: Category!
+  attributes: [ProductAttributeInput!]! = []
+}
+
+type Query {
+  "Newest first."
+  products: [Product!]!
+  "Null when the product does not exist."
+  product(id: ID!): Product
+}
+
+type Mutation {
+  addProduct(input: AddProductInput!): Product!
+}

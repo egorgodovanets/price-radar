@@ -2,13 +2,14 @@ import { loadConfig } from './config.js';
 import { createServer } from './server.js';
 
 const config = loadConfig();
-const server = await createServer();
+const server = await createServer(config);
 
 await new Promise<void>((resolve, reject) => {
   server.httpServer.once('error', reject);
   server.httpServer.listen(config.port, resolve);
 });
 console.log(`BFF ready at http://localhost:${config.port}/graphql`);
+console.log(`Using Tracker at ${config.trackerUrl}`);
 
 let shuttingDown = false;
 
