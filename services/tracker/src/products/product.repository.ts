@@ -1,6 +1,7 @@
 import { ObjectId, type Collection, type Db } from 'mongodb';
 import { isDuplicateKeyError, toObjectId } from '../common/mongo.js';
 import type { CreateProductInput, ProductDocument } from './product.js';
+import type { Money } from '../common/money.js';
 
 export class DuplicateProductError extends Error {
   constructor(url: string) {
@@ -31,6 +32,17 @@ export class ProductRepository {
       throw error;
     }
     return product;
+  }
+
+    /**
+   * Stores a copy of the latest price on the product, so lists do not read the history.
+   * The filter skips the update if the product already has a newer price.
+   */
+  async updateCurrentPrice(id: ObjectId, price: Money, at: Date): Promise<void> {
+    await this.collection.updateOne(
+      { _id: id, $or: [{ priceUpdatedAt: { $exists: false } }, { priceUpdatedAt: { $lte: at } }] },
+      { $set: { currentPrice: price, priceUpdatedAt: at } },
+    );
   }
 
   findAll(): Promise<ProductDocument[]> {

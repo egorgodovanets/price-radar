@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { ObjectId } from 'mongodb';
-import type { ProductDocument } from '../products/product.js';
 import type { CreateWatchInput, WatchDocument } from './watch.js';
-import { ProductNotFoundError, WatchService, type WatchServiceDeps } from './watch.service.js';
+import { ProductNotFoundError, type ProductDocument } from '../products/product.js';
+import { WatchService, type WatchServiceDeps } from './watch.service.js';
 
 // The service is tested with fake repositories: no MongoDB, no HTTP, only business rules.
 type Products = WatchServiceDeps['products'];

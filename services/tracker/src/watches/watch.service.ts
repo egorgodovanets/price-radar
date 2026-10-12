@@ -1,13 +1,7 @@
 import type { ProductRepository } from '../products/product.repository.js';
 import type { CreateWatchInput, WatchDocument } from './watch.js';
 import type { WatchRepository } from './watch.repository.js';
-
-export class ProductNotFoundError extends Error {
-  constructor(productId: string) {
-    super(`Product "${productId}" not found`);
-    this.name = 'ProductNotFoundError';
-  }
-}
+import { ProductNotFoundError } from '../products/product.js';
 
 /** Only the methods the service uses, so tests can pass simple fakes. */
 export interface WatchServiceDeps {

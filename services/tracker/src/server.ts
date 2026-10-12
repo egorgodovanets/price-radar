@@ -2,6 +2,8 @@ import http from 'node:http';
 import { MongoClient } from 'mongodb';
 import { createApp } from './app.js';
 import type { Config } from './config.js';
+import { PriceRepository } from './prices/price.repository.js';
+import { PriceService } from './prices/price.service.js';
 import { ProductRepository } from './products/product.repository.js';
 import { WatchRepository } from './watches/watch.repository.js';
 import { WatchService } from './watches/watch.service.js';
@@ -28,10 +30,16 @@ export async function createServer(config: Config): Promise<TrackerServer> {
     const db = client.db(config.mongoDb);
     const products = new ProductRepository(db);
     const watchRepository = new WatchRepository(db);
-    await Promise.all([products.ensureIndexes(), watchRepository.ensureIndexes()]);
+    const priceRepository = new PriceRepository(db);
+    await Promise.all([
+      products.ensureIndexes(),
+      watchRepository.ensureIndexes(),
+      priceRepository.ensureIndexes(),
+    ]);
 
     const watches = new WatchService({ products, watches: watchRepository });
-    const httpServer = http.createServer(createApp({ products, watches }));
+    const prices = new PriceService({ products, prices: priceRepository });
+    const httpServer = http.createServer(createApp({ products, watches, prices }));
 
     return {
       httpServer,

@@ -15,6 +15,8 @@ interface ProductBody {
   url: string;
   category: string;
   attributes: Record<string, unknown>;
+  currentPrice: { amount: number; currency: string } | null;
+  priceUpdatedAt: string | null;
   createdAt: string;
 }
 
@@ -77,6 +79,8 @@ describe('Tracker products API', () => {
     expect(created).toEqual({
       ...mat,
       id: expect.stringMatching(/^[a-f\d]{24}$/),
+      currentPrice: null,
+      priceUpdatedAt: null,
       createdAt: expect.any(String),
     });
     expect(Number.isNaN(Date.parse(created.createdAt))).toBe(false);

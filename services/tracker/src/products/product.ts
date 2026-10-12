@@ -1,4 +1,5 @@
 import type { ObjectId } from 'mongodb';
+import type { Money } from '../common/money.js';
 
 export const CATEGORIES = ['sport', 'electronics'] as const;
 export type Category = (typeof CATEGORIES)[number];
@@ -17,18 +18,40 @@ export interface CreateProductInput {
   attributes: ProductAttributes;
 }
 
-/** Shape stored in the "products" collection. */
 export interface ProductDocument extends CreateProductInput {
   _id: ObjectId;
   createdAt: Date;
+  /** Copy of the latest price point; absent until the first price is recorded. */
+  currentPrice?: Money;
+  priceUpdatedAt?: Date;
 }
 
-/** Shape returned by the REST API. */
 export interface ProductDto extends CreateProductInput {
   id: string;
+  currentPrice: Money | null;
+  priceUpdatedAt: string | null;
   createdAt: string;
 }
 
-export function toProductDto({ _id, createdAt, ...fields }: ProductDocument): ProductDto {
-  return { id: _id.toHexString(), ...fields, createdAt: createdAt.toISOString() };
+export function toProductDto({
+  _id,
+  createdAt,
+  currentPrice,
+  priceUpdatedAt,
+  ...fields
+}: ProductDocument): ProductDto {
+  return {
+    id: _id.toHexString(),
+    ...fields,
+    currentPrice: currentPrice ?? null,
+    priceUpdatedAt: priceUpdatedAt?.toISOString() ?? null,
+    createdAt: createdAt.toISOString(),
+  };
+}
+
+export class ProductNotFoundError extends Error {
+  constructor(productId: string) {
+    super(`Product "${productId}" not found`);
+    this.name = 'ProductNotFoundError';
+  }
 }

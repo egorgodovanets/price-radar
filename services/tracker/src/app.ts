@@ -1,4 +1,6 @@
 import express, { type ErrorRequestHandler, type Express } from 'express';
+import { createPriceRouter } from './prices/price.router.js';
+import type { PriceService } from './prices/price.service.js';
 import type { ProductRepository } from './products/product.repository.js';
 import { createProductRouter } from './products/product.router.js';
 import { createWatchRouter } from './watches/watch.router.js';
@@ -7,6 +9,7 @@ import type { WatchService } from './watches/watch.service.js';
 export interface AppDeps {
   products: ProductRepository;
   watches: WatchService;
+  prices: PriceService;
 }
 
 /** express.json() fails with this error when the body is not valid JSON. */
@@ -23,13 +26,14 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   res.status(500).json({ errors: ['Internal server error'] });
 };
 
-export function createApp({ products, watches }: AppDeps): Express {
+export function createApp({ products, watches, prices }: AppDeps): Express {
   const app = express();
   app.use(express.json());
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
+  app.use('/products/:id/prices', createPriceRouter(prices));
   app.use('/products', createProductRouter(products));
   app.use('/watches', createWatchRouter(watches));
 

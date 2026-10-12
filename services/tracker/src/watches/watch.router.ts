@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { isObjectIdHex } from '../common/mongo.js';
 import { toWatchDto } from './watch.js';
 import { DuplicateWatchError } from './watch.repository.js';
-import { ProductNotFoundError, type WatchService } from './watch.service.js';
 import { validateCreateWatch } from './watch.validation.js';
+import { ProductNotFoundError } from '../products/product.js';
+import type { WatchService } from './watch.service.js';
 
 export function createWatchRouter(watches: WatchService): Router {
   const router = Router();
