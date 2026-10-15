@@ -1,0 +1,313 @@
+:root {
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --text: #1d2330;
+  --muted: #6b7385;
+  --border: #e1e4ea;
+  --accent: #2f6fed;
+  --accent-soft: #e8f0ff;
+  --down: #138a4b;
+  --up: #c2410c;
+  --danger: #b42318;
+
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.5rem;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+h3 {
+  font-size: 1rem;
+  margin-top: 1.25rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+.app {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.app-header {
+  margin-bottom: 1.25rem;
+}
+
+.app-header p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+  margin: 0.5rem 0;
+}
+
+.product-list,
+.watch-list,
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.product-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.4rem;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.product-item:hover {
+  border-color: var(--accent);
+}
+
+.product-item[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.product-item__title {
+  font-weight: 600;
+}
+
+.product-item__meta {
+  grid-column: 1;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.product-item__price {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.form--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-top: 0.75rem;
+}
+
+.form--inline .error {
+  flex-basis: 100%;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button[type='submit'] {
+  padding: 0.5rem 1rem;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.link-button {
+  padding: 0 0.25rem;
+  margin-left: 0.5rem;
+  color: var(--accent);
+  background: none;
+  border: none;
+}
+
+.attributes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.attributes legend {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.attributes > .link-button {
+  align-self: flex-start;
+  margin: 0;
+}
+
+.attribute-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.4rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+.chips li {
+  font-size: 0.8rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+}
+
+.current-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0 0;
+}
+
+.current-price .muted {
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.chart {
+  margin: 0.5rem 0;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.chart polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.chart circle {
+  fill: var(--accent);
+}
+
+.chart figcaption {
+  font-size: 0.85rem;
+}
+
+.history {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.history th,
+.history td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.history th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.down {
+  color: var(--down);
+}
+
+.up {
+  color: var(--up);
+}
+
+.watch-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}

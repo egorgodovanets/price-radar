@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["es2024", "dom", "dom.iterable"],
+    // Vite bundles the code, so imports follow bundler rules: no .js extensions.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    // CommonJS packages (react-dom, testing-library) imported with default imports in tests.
+    "esModuleInterop": true,
+    "types": ["vite/client", "jest"],
+    "noEmit": true
+  },
+  "include": ["src", "vite.config.ts"]
+}
