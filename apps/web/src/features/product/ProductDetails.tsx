@@ -1,5 +1,13 @@
-import { PRODUCT_QUERY, type ProductData } from '../../api/operations';
+import { useState } from 'react';
+import {
+  PRICE_CHANGED_SUBSCRIPTION,
+  PRODUCT_QUERY,
+  type PriceChange,
+  type PriceChangedData,
+  type ProductData,
+} from '../../api/operations';
 import { useQuery } from '../../api/useQuery';
+import { useSubscription } from '../../api/useSubscription';
 import { ErrorMessage } from '../../shared/ErrorMessage';
 import { formatDateTime, formatMoney, shopName } from '../../shared/format';
 import { CreateWatchForm } from '../watches/CreateWatchForm';
@@ -22,6 +30,18 @@ export function ProductDetails({ productId, onChanged }: ProductDetailsProps) {
     id: productId,
     historyLimit: HISTORY_LIMIT,
   });
+  const [liveChange, setLiveChange] = useState<PriceChange | null>(null);
+
+  // Only this product's changes: the BFF filters by productId before sending.
+  useSubscription<PriceChangedData>(
+    PRICE_CHANGED_SUBSCRIPTION,
+    { productId },
+    ({ priceChanged }) => {
+      setLiveChange(priceChanged);
+      refetch();
+    },
+    refetch,
+  );
 
   if (error) return <ErrorMessage error={error} onRetry={refetch} />;
   if (!data) return <p className="muted">Loading…</p>;
@@ -54,6 +74,13 @@ export function ProductDetails({ productId, onChanged }: ProductDetailsProps) {
           {product.currentPrice ? formatMoney(product.currentPrice) : 'No price yet'}
           {product.priceUpdatedAt && <span className="muted"> · {formatDateTime(product.priceUpdatedAt)}</span>}
         </p>
+        {liveChange && (
+          <p className="live-note" role="status">
+            Live: price changed
+            {liveChange.previousPrice && ` from ${formatMoney(liveChange.previousPrice)}`} to {formatMoney(liveChange.price)} ·{' '}
+            {formatDateTime(liveChange.observedAt)}
+          </p>
+        )}
       </header>
 
       <section>

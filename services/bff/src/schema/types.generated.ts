@@ -1,5 +1,5 @@
 import type { GraphQLResolveInfo } from 'graphql';
-import type { PricePointMapper } from './price/schema.mappers.js';
+import type { PriceChangeMapper, PricePointMapper } from './price/schema.mappers.js';
 import type { ProductMapper } from './product/schema.mappers.js';
 import type { WatchMapper } from './watch/schema.mappers.js';
 import type { GraphQLContext } from '../context.js';
@@ -85,6 +85,17 @@ export type MutationrecordPriceArgs = {
   productId: Scalars['ID']['input'];
 };
 
+/** A recorded price that differs from the previous one. */
+export type PriceChange = {
+  __typename?: 'PriceChange';
+  /** ISO 8601. */
+  observedAt: Scalars['String']['output'];
+  /** Null for the first price of a product. */
+  previousPrice?: Maybe<Money>;
+  price: Money;
+  productId: Scalars['ID']['output'];
+};
+
 /** One observed price of a product. */
 export type PricePoint = {
   __typename?: 'PricePoint';
@@ -149,6 +160,17 @@ export type QueryproductArgs = {
 
 
 export type QuerywatchesArgs = {
+  productId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type Subscription = {
+  __typename?: 'Subscription';
+  /** Price changes of one product, or of all products when productId is omitted. */
+  priceChanged: PriceChange;
+};
+
+
+export type SubscriptionpriceChangedArgs = {
   productId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -249,12 +271,14 @@ export type ResolversTypes = {
   MoneyInput: MoneyInput;
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  PriceChange: ResolverTypeWrapper<PriceChangeMapper>;
   PricePoint: ResolverTypeWrapper<PricePointMapper>;
   Product: ResolverTypeWrapper<ProductMapper>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   ProductAttribute: ResolverTypeWrapper<ProductAttribute>;
   ProductAttributeInput: ProductAttributeInput;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
+  Subscription: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Watch: ResolverTypeWrapper<WatchMapper>;
 };
 
@@ -269,12 +293,14 @@ export type ResolversParentTypes = {
   MoneyInput: MoneyInput;
   Mutation: Record<PropertyKey, never>;
   Boolean: Scalars['Boolean']['output'];
+  PriceChange: PriceChangeMapper;
   PricePoint: PricePointMapper;
   Product: ProductMapper;
   Int: Scalars['Int']['output'];
   ProductAttribute: ProductAttribute;
   ProductAttributeInput: ProductAttributeInput;
   Query: Record<PropertyKey, never>;
+  Subscription: Record<PropertyKey, never>;
   Watch: WatchMapper;
 };
 
@@ -292,6 +318,13 @@ export type MutationResolvers<ContextType = GraphQLContext, ParentType extends R
   createWatch?: Resolver<ResolversTypes['Watch'], ParentType, ContextType, RequireFields<MutationcreateWatchArgs, 'input'>>;
   deleteWatch?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<MutationdeleteWatchArgs, 'id'>>;
   recordPrice?: Resolver<ResolversTypes['PricePoint'], ParentType, ContextType, RequireFields<MutationrecordPriceArgs, 'price' | 'productId'>>;
+};
+
+export type PriceChangeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['PriceChange'] = ResolversParentTypes['PriceChange']> = {
+  observedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  previousPrice?: Resolver<Maybe<ResolversTypes['Money']>, ParentType, ContextType>;
+  price?: Resolver<ResolversTypes['Money'], ParentType, ContextType>;
+  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 };
 
 export type PricePointResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['PricePoint'] = ResolversParentTypes['PricePoint']> = {
@@ -324,6 +357,10 @@ export type QueryResolvers<ContextType = GraphQLContext, ParentType extends Reso
   watches?: Resolver<Array<ResolversTypes['Watch']>, ParentType, ContextType, Partial<QuerywatchesArgs>>;
 };
 
+export type SubscriptionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Subscription'] = ResolversParentTypes['Subscription']> = {
+  priceChanged?: SubscriptionResolver<ResolversTypes['PriceChange'], "priceChanged", ParentType, ContextType, Partial<SubscriptionpriceChangedArgs>>;
+};
+
 export type WatchResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Watch'] = ResolversParentTypes['Watch']> = {
   chatId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -337,10 +374,12 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Currency?: CurrencyResolvers;
   Money?: MoneyResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
+  PriceChange?: PriceChangeResolvers<ContextType>;
   PricePoint?: PricePointResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
   ProductAttribute?: ProductAttributeResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  Subscription?: SubscriptionResolvers<ContextType>;
   Watch?: WatchResolvers<ContextType>;
 };
 

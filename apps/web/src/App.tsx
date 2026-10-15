@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { PRODUCTS_QUERY, type ProductsData } from './api/operations';
+import { PRICE_CHANGED_SUBSCRIPTION, PRODUCTS_QUERY, type PriceChangedData, type ProductsData } from './api/operations';
 import { useQuery } from './api/useQuery';
+import { useSubscription } from './api/useSubscription';
 import { ProductDetails } from './features/product/ProductDetails';
 import { AddProductForm } from './features/products/AddProductForm';
 import { ProductList } from './features/products/ProductList';
@@ -8,6 +9,8 @@ import { ProductList } from './features/products/ProductList';
 export function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const products = useQuery<ProductsData>(PRODUCTS_QUERY);
+  // Any product changed its price (no productId): reload the list to show the new current price.
+  useSubscription<PriceChangedData>(PRICE_CHANGED_SUBSCRIPTION, {}, products.refetch, products.refetch);
 
   return (
     <div className="app">

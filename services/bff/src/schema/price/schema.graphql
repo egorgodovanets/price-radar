@@ -10,3 +10,18 @@ extend type Mutation {
   "Adds a price by hand; the scraper does the same through Tracker's REST API."
   recordPrice(productId: ID!, price: MoneyInput!): PricePoint!
 }
+
+"A recorded price that differs from the previous one."
+type PriceChange {
+  productId: ID!
+  price: Money!
+  "Null for the first price of a product."
+  previousPrice: Money
+  "ISO 8601."
+  observedAt: String!
+}
+
+type Subscription {
+  "Price changes of one product, or of all products when productId is omitted."
+  priceChanged(productId: ID): PriceChange!
+}

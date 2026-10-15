@@ -143,3 +143,25 @@ export interface DeleteWatchData {
 export interface DeleteWatchVariables extends Record<string, unknown> {
   id: string;
 }
+
+/** A recorded price that differs from the previous one, pushed by the BFF over WebSocket. */
+export interface PriceChange {
+  productId: string;
+  price: Money;
+  previousPrice: Money | null;
+  observedAt: string;
+}
+
+export const PRICE_CHANGED_SUBSCRIPTION = /* GraphQL */ `
+  subscription PriceChanged($productId: ID) {
+    priceChanged(productId: $productId) {
+      productId
+      price { amount currency }
+      previousPrice { amount currency }
+      observedAt
+    }
+  }
+`;
+export interface PriceChangedData {
+  priceChanged: PriceChange;
+}

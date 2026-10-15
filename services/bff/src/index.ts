@@ -1,8 +1,10 @@
 import { loadConfig } from './config.js';
+import { createRedisPubSub } from './realtime/redisPubSub.js';
 import { createServer } from './server.js';
 
 const config = loadConfig();
-const server = await createServer(config);
+const pubsub = createRedisPubSub(config.redisUrl);
+const server = await createServer({ trackerUrl: config.trackerUrl, pubsub });
 
 await new Promise<void>((resolve, reject) => {
   server.httpServer.once('error', reject);
@@ -10,6 +12,7 @@ await new Promise<void>((resolve, reject) => {
 });
 console.log(`BFF ready at http://localhost:${config.port}/graphql`);
 console.log(`Using Tracker at ${config.trackerUrl}`);
+console.log(`Using Redis at ${config.redisUrl}`);
 
 let shuttingDown = false;
 
@@ -19,6 +22,8 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
 
   console.log(`${signal} received, shutting down...`);
   await server.stop();
+  // After the server: no subscription or mutation uses Redis anymore.
+  await pubsub.close();
   console.log('BFF stopped');
 }
 

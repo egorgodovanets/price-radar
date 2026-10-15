@@ -3,7 +3,11 @@ import { loadConfig } from './config.js';
 
 describe('loadConfig', () => {
   it('falls back to defaults when nothing is set', () => {
-    expect(loadConfig({})).toEqual({ port: 4000, trackerUrl: 'http://localhost:4001' });
+    expect(loadConfig({})).toEqual({
+      port: 4000,
+      trackerUrl: 'http://localhost:4001',
+      redisUrl: 'redis://localhost:6379',
+    });
   });
 
   it('reads PORT from the environment', () => {
@@ -24,5 +28,13 @@ describe('loadConfig', () => {
 
   it.each(['localhost:4001', 'tracker', 'ftp://tracker'])('rejects invalid TRACKER_URL %p', (value) => {
     expect(() => loadConfig({ TRACKER_URL: value })).toThrow(/TRACKER_URL/);
+  });
+
+  it('reads REDIS_URL from the environment', () => {
+    expect(loadConfig({ REDIS_URL: 'redis://redis:6379' }).redisUrl).toBe('redis://redis:6379');
+  });
+
+  it.each(['http://redis:6379', 'redis'])('rejects invalid REDIS_URL %p', (value) => {
+    expect(() => loadConfig({ REDIS_URL: value })).toThrow(/REDIS_URL/);
   });
 });

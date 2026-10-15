@@ -7,7 +7,9 @@ import    { addProduct as Mutation_addProduct } from './product/resolvers/Mutati
 import    { createWatch as Mutation_createWatch } from './watch/resolvers/Mutation/createWatch.js';
 import    { deleteWatch as Mutation_deleteWatch } from './watch/resolvers/Mutation/deleteWatch.js';
 import    { recordPrice as Mutation_recordPrice } from './price/resolvers/Mutation/recordPrice.js';
+import    { priceChanged as Subscription_priceChanged } from './price/resolvers/Subscription/priceChanged.js';
 import    { Money } from './money/resolvers/Money.js';
+import    { PriceChange } from './price/resolvers/PriceChange.js';
 import    { PricePoint } from './price/resolvers/PricePoint.js';
 import    { Product } from './product/resolvers/Product.js';
 import    { ProductAttribute } from './product/resolvers/ProductAttribute.js';
@@ -15,8 +17,9 @@ import    { Watch } from './watch/resolvers/Watch.js';
     export const resolvers: Resolvers = {
       Query: { product: Query_product,products: Query_products,watches: Query_watches },
       Mutation: { addProduct: Mutation_addProduct,createWatch: Mutation_createWatch,deleteWatch: Mutation_deleteWatch,recordPrice: Mutation_recordPrice },
-      
+      Subscription: { priceChanged: Subscription_priceChanged },
       Money: Money,
+PriceChange: PriceChange,
 PricePoint: PricePoint,
 Product: Product,
 ProductAttribute: ProductAttribute,

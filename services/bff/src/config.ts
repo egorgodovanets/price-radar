@@ -3,10 +3,13 @@ export interface Config {
   port: number;
   /** Base URL of the Tracker REST API. */
   trackerUrl: string;
+  /** Redis for GraphQL subscription events shared by all BFF instances. */
+  redisUrl: string;
 }
 
 const DEFAULT_PORT = 4000;
 const DEFAULT_TRACKER_URL = 'http://localhost:4001';
+const DEFAULT_REDIS_URL = 'redis://localhost:6379';
 
 function parsePort(raw: string | undefined): number {
   if (raw === undefined) return DEFAULT_PORT;
@@ -18,12 +21,12 @@ function parsePort(raw: string | undefined): number {
   return port;
 }
 
-function parseHttpUrl(name: string, raw: string | undefined, fallback: string): string {
+function parseUrl(name: string, raw: string | undefined, fallback: string, protocols: string[]): string {
   // || (not ??): an empty string in .env also falls back to the default.
   const value = raw || fallback;
   const protocol = URL.canParse(value) ? new URL(value).protocol : '';
-  if (protocol !== 'http:' && protocol !== 'https:') {
-    throw new Error(`Invalid ${name}: "${value}". Expected an http(s) URL.`);
+  if (!protocols.includes(protocol)) {
+    throw new Error(`Invalid ${name}: "${value}". Expected a URL starting with ${protocols.join(' or ')}//.`);
   }
   return value;
 }
@@ -36,6 +39,7 @@ function parseHttpUrl(name: string, raw: string | undefined, fallback: string): 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     port: parsePort(env.PORT),
-    trackerUrl: parseHttpUrl('TRACKER_URL', env.TRACKER_URL, DEFAULT_TRACKER_URL),
+    trackerUrl: parseUrl('TRACKER_URL', env.TRACKER_URL, DEFAULT_TRACKER_URL, ['http:', 'https:']),
+    redisUrl: parseUrl('REDIS_URL', env.REDIS_URL, DEFAULT_REDIS_URL, ['redis:', 'rediss:']),
   };
 }

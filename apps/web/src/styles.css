@@ -253,6 +253,16 @@ button:disabled {
   font-weight: 400;
 }
 
+/* Shown after a price change arrives over the WebSocket. */
+.live-note {
+  display: inline-block;
+  margin: 0.5rem 0 0;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-size: 0.85rem;
+}
+
 .chart {
   margin: 0.5rem 0;
 }

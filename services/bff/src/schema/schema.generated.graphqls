@@ -50,6 +50,17 @@ type Mutation {
   recordPrice(price: MoneyInput!, productId: ID!): PricePoint!
 }
 
+"""A recorded price that differs from the previous one."""
+type PriceChange {
+  """ISO 8601."""
+  observedAt: String!
+
+  """Null for the first price of a product."""
+  previousPrice: Money
+  price: Money!
+  productId: ID!
+}
+
 """One observed price of a product."""
 type PricePoint {
   id: ID!
@@ -103,6 +114,13 @@ type Query {
 
   """All watches, or only those of one product."""
   watches(productId: ID): [Watch!]!
+}
+
+type Subscription {
+  """
+  Price changes of one product, or of all products when productId is omitted.
+  """
+  priceChanged(productId: ID): PriceChange!
 }
 
 """A request to be notified in Telegram when a product gets cheap enough."""
