@@ -3,17 +3,10 @@ import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
 import { PubSub } from 'graphql-subscriptions';
 import { createClient, type Client } from 'graphql-ws';
 import WebSocket from 'ws';
-import { PRICE_CHANGED } from './realtime/events.js';
+import { PRICE_CHANGED, type PriceChangedEvent } from './realtime/events.js';
+import { handlePriceChangedMessage } from './realtime/priceChangedConsumer.js';
 import { createServer, type BffServer } from './server.js';
-import {
-  close,
-  createFakeTracker,
-  graphQLClient,
-  listen,
-  NEW_PRODUCT_ID,
-  pricePoint,
-  PRODUCT_ID,
-} from './testing/fakeTracker.js';
+import { close, createFakeTracker, listen, NEW_PRODUCT_ID, PRODUCT_ID } from './testing/fakeTracker.js';
 
 const PRICE_CHANGED_SUBSCRIPTION = `
   subscription ($productId: ID) {
@@ -26,7 +19,15 @@ const PRICE_CHANGED_SUBSCRIPTION = `
   }
 `;
 
-const RECORD_PRICE = 'mutation ($id: ID!, $amount: Float!) { recordPrice(productId: $id, price: { amount: $amount, currency: UAH }) { id } }';
+const change: PriceChangedEvent = {
+  productId: PRODUCT_ID,
+  price: { amount: 1399, currency: 'UAH' },
+  previousPrice: { amount: 1500, currency: 'UAH' },
+  observedAt: '2026-10-13T10:00:00.000Z',
+};
+
+/** The value of a Kafka message, as Tracker would send it. */
+const kafkaMessage = (value: unknown) => Buffer.from(typeof value === 'string' ? value : JSON.stringify(value));
 
 /** Starts a subscription and collects everything it receives. */
 function subscribe(client: Client, variables: Record<string, unknown>) {
@@ -57,14 +58,12 @@ describe('priceChanged subscription', () => {
   const pubsub = new PubSub({ eventEmitter: emitter });
   let server: BffServer | undefined;
   let client: Client | undefined;
-  let baseUrl = '';
-  const graphql = graphQLClient(() => baseUrl);
   const listeners = () => emitter.listenerCount(PRICE_CHANGED);
 
   beforeAll(async () => {
     const trackerUrl = await listen(tracker);
     server = await createServer({ trackerUrl, pubsub });
-    baseUrl = await listen(server.httpServer);
+    const baseUrl = await listen(server.httpServer);
     client = createClient({ url: `${baseUrl.replace('http', 'ws')}/graphql`, webSocketImpl: WebSocket });
   });
 
@@ -74,26 +73,16 @@ describe('priceChanged subscription', () => {
     await close(tracker);
   });
 
-  it('delivers a change to subscribers of that product and of all products only', async () => {
+  it('delivers a Kafka event to subscribers of that product and of all products only', async () => {
     const forProduct = subscribe(client!, { productId: PRODUCT_ID });
     const forAll = subscribe(client!, {});
     const forOther = subscribe(client!, { productId: NEW_PRODUCT_ID });
     await waitUntil(() => listeners() === 3);
 
-    // The fake Tracker's current price is 1500, so 1399 is a change.
-    await graphql(RECORD_PRICE, { id: PRODUCT_ID, amount: 1399 });
+    handlePriceChangedMessage(pubsub, kafkaMessage(change));
     await waitUntil(() => forProduct.events.length === 1 && forAll.events.length === 1);
 
-    const expected = {
-      data: {
-        priceChanged: {
-          productId: PRODUCT_ID,
-          price: { amount: 1399, currency: 'UAH' },
-          previousPrice: { amount: 1500, currency: 'UAH' },
-          observedAt: pricePoint.observedAt,
-        },
-      },
-    };
+    const expected = { data: { priceChanged: change } };
     expect(forProduct.events).toEqual([expected]);
     expect(forAll.events).toEqual([expected]);
     // Give the filtered-out subscription a chance to receive what it should not.
@@ -105,24 +94,26 @@ describe('priceChanged subscription', () => {
     await waitUntil(() => listeners() === 0);
   });
 
-  it('sends nothing when the recorded price equals the current one', async () => {
-    const subscription = subscribe(client!, { productId: PRODUCT_ID });
+  it('skips a malformed message and keeps delivering the next ones', async () => {
+    const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const subscription = subscribe(client!, {});
     await waitUntil(() => listeners() === 1);
 
-    await graphql(RECORD_PRICE, { id: PRODUCT_ID, amount: 1500 });
-    await graphql(RECORD_PRICE, { id: PRODUCT_ID, amount: 1450 });
+    handlePriceChangedMessage(pubsub, kafkaMessage('not json'));
+    handlePriceChangedMessage(pubsub, kafkaMessage({ ...change, price: { amount: 'cheap', currency: 'UAH' } }));
+    handlePriceChangedMessage(pubsub, kafkaMessage({ ...change, previousPrice: null }));
     await waitUntil(() => subscription.events.length === 1);
     await sleep(50);
 
-    expect(subscription.events).toEqual([
-      expect.objectContaining({ data: { priceChanged: expect.objectContaining({ price: { amount: 1450, currency: 'UAH' } }) } }),
-    ]);
+    expect(subscription.events).toEqual([{ data: { priceChanged: { ...change, previousPrice: null } } }]);
+    expect(consoleWarn).toHaveBeenCalledTimes(2);
+    consoleWarn.mockRestore();
     subscription.unsubscribe();
     await waitUntil(() => listeners() === 0);
   });
 });
 
-describe('recordPrice when publishing fails', () => {
+describe('Kafka message to pub/sub', () => {
   /** Pub/sub whose broker is down. */
   class BrokenPubSub extends PubSub {
     override publish(): Promise<void> {
@@ -130,29 +121,11 @@ describe('recordPrice when publishing fails', () => {
     }
   }
 
-  const tracker = createFakeTracker([]);
-  let server: BffServer | undefined;
-  let baseUrl = '';
-  const graphql = graphQLClient(() => baseUrl);
-
-  beforeAll(async () => {
-    const trackerUrl = await listen(tracker);
-    server = await createServer({ trackerUrl, pubsub: new BrokenPubSub() });
-    baseUrl = await listen(server.httpServer);
-  });
-
-  afterAll(async () => {
-    await server?.stop();
-    await close(tracker);
-  });
-
-  it('still records the price and only logs the publishing error', async () => {
+  it('only logs when Redis is down, so the consumer keeps running', async () => {
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    const { body } = await graphql(RECORD_PRICE, { id: PRODUCT_ID, amount: 1399 });
+    expect(() => handlePriceChangedMessage(new BrokenPubSub(), kafkaMessage(change))).not.toThrow();
 
-    expect(body.errors).toBeUndefined();
-    expect(body.data).toEqual({ recordPrice: { id: pricePoint.id } });
     await waitUntil(() => consoleError.mock.calls.length === 1);
     expect(consoleError).toHaveBeenCalledWith('Failed to publish price change', expect.any(Error));
     consoleError.mockRestore();

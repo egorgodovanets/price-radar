@@ -23,6 +23,7 @@
     "graphql-subscriptions": "^3.0.0",
     "graphql-ws": "^6.3.0",
     "ioredis": "^5.11.1",
+    "node-rdkafka": "^3.6.1",
     "ws": "^8.22.0"
   },
   "devDependencies": {

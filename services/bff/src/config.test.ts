@@ -7,6 +7,7 @@ describe('loadConfig', () => {
       port: 4000,
       trackerUrl: 'http://localhost:4001',
       redisUrl: 'redis://localhost:6379',
+      kafkaBrokers: null,
     });
   });
 
@@ -36,5 +37,14 @@ describe('loadConfig', () => {
 
   it.each(['http://redis:6379', 'redis'])('rejects invalid REDIS_URL %p', (value) => {
     expect(() => loadConfig({ REDIS_URL: value })).toThrow(/REDIS_URL/);
+  });
+
+  it('reads KAFKA_BROKERS and treats an empty value as Kafka off', () => {
+    expect(loadConfig({ KAFKA_BROKERS: 'kafka:19092' }).kafkaBrokers).toBe('kafka:19092');
+    expect(loadConfig({ KAFKA_BROKERS: '' }).kafkaBrokers).toBeNull();
+  });
+
+  it.each(['kafka', 'kafka:9092,'])('rejects invalid KAFKA_BROKERS %p', (value) => {
+    expect(() => loadConfig({ KAFKA_BROKERS: value })).toThrow(/KAFKA_BROKERS/);
   });
 });

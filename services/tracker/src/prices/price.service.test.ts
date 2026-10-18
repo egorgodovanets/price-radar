@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { ObjectId } from 'mongodb';
 import type { Money } from '../common/money.js';
+import type { PriceEvents } from '../events/priceEvents.js';
 import { ProductNotFoundError, type ProductDocument } from '../products/product.js';
 import type { PricePointDocument } from './price.js';
 import { CurrencyMismatchError, PriceService, type PriceServiceDeps } from './price.service.js';
@@ -37,7 +38,7 @@ function setup(found: ProductDocument | null) {
     add: jest.fn<Prices['add']>().mockResolvedValue(point),
     findByProduct: jest.fn<Prices['findByProduct']>().mockResolvedValue([point]),
   };
-  return { service: new PriceService({ products, prices }), products, prices };
+  return { service: new PriceService({ products, prices, events: { priceChanged: jest.fn() } }), products, prices };
 }
 
 describe('PriceService', () => {
@@ -86,5 +87,43 @@ describe('PriceService', () => {
 
     await expect(service.history(productId, 10)).rejects.toBeInstanceOf(ProductNotFoundError);
     expect(prices.findByProduct).not.toHaveBeenCalled();
+  });
+});
+
+describe('PriceService events', () => {
+  function setupWithEvents(current: Money | undefined) {
+    const priceChanged = jest.fn<PriceEvents['priceChanged']>();
+    const { products, prices } = setup({ ...product, currentPrice: current });
+    const service = new PriceService({ products, prices, events: { priceChanged } });
+    return { service, priceChanged };
+  }
+
+  it('announces a change with the previous price', async () => {
+    const { service, priceChanged } = setupWithEvents({ amount: 1700, currency: 'UAH' });
+
+    await service.record(productId, price);
+
+    expect(priceChanged).toHaveBeenCalledWith({
+      productId,
+      price: point.price,
+      previousPrice: { amount: 1700, currency: 'UAH' },
+      observedAt: point.observedAt.toISOString(),
+    });
+  });
+
+  it('announces the first price of a product with previousPrice null', async () => {
+    const { service, priceChanged } = setupWithEvents(undefined);
+
+    await service.record(productId, price);
+
+    expect(priceChanged).toHaveBeenCalledWith(expect.objectContaining({ previousPrice: null }));
+  });
+
+  it('stays silent when the price did not change', async () => {
+    const { service, priceChanged } = setupWithEvents({ amount: 1500, currency: 'UAH' });
+
+    await service.record(productId, price);
+
+    expect(priceChanged).not.toHaveBeenCalled();
   });
 });

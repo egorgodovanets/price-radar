@@ -1,24 +1,9 @@
-import { publishPriceChanged } from '../../../../realtime/events.js';
 import type { MutationResolvers } from './../../../types.generated.js';
 
-export const recordPrice: NonNullable<MutationResolvers['recordPrice']> = async (
+// Subscribers hear about the change from Tracker via Kafka, not from here:
+// the scraper records prices directly in Tracker, bypassing the BFF.
+export const recordPrice: NonNullable<MutationResolvers['recordPrice']> = (
   _parent,
   { productId, price },
-  { dataSources, pubsub },
-) => {
-  // Temporary until Tracker publishes price changes to Kafka (next step):
-  // only prices recorded through the BFF reach subscribers.
-  const before = await dataSources.tracker.getProduct(productId);
-  const point = await dataSources.tracker.recordPrice(productId, { amount: price.amount, currency: price.currency });
-
-  const previousPrice = before?.currentPrice ?? null;
-  if (previousPrice?.amount !== point.price.amount) {
-    publishPriceChanged(pubsub, {
-      productId: point.productId,
-      price: point.price,
-      previousPrice,
-      observedAt: point.observedAt,
-    });
-  }
-  return point;
-};
+  { dataSources },
+) => dataSources.tracker.recordPrice(productId, { amount: price.amount, currency: price.currency });

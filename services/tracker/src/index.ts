@@ -9,6 +9,9 @@ await new Promise<void>((resolve, reject) => {
   server.httpServer.listen(config.port, resolve);
 });
 console.log(`Tracker ready at http://localhost:${config.port}`);
+console.log(
+  config.kafkaBrokers ? `Publishing price changes to Kafka at ${config.kafkaBrokers}` : 'Kafka is off (KAFKA_BROKERS not set)',
+);
 
 let shuttingDown = false;
 

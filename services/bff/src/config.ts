@@ -5,6 +5,8 @@ export interface Config {
   trackerUrl: string;
   /** Redis for GraphQL subscription events shared by all BFF instances. */
   redisUrl: string;
+  /** Comma-separated host:port list to read price.changed from; null turns Kafka off. */
+  kafkaBrokers: string | null;
 }
 
 const DEFAULT_PORT = 4000;
@@ -31,6 +33,18 @@ function parseUrl(name: string, raw: string | undefined, fallback: string, proto
   return value;
 }
 
+const BROKER = /^[\w.-]+:\d{1,5}$/;
+
+function parseBrokers(raw: string | undefined): string | null {
+  if (!raw?.trim()) return null;
+
+  const brokers = raw.split(',').map((broker) => broker.trim());
+  if (!brokers.every((broker) => BROKER.test(broker))) {
+    throw new Error(`Invalid KAFKA_BROKERS: "${raw}". Expected host:port[,host:port...].`);
+  }
+  return brokers.join(',');
+}
+
 /**
  * Reads BFF settings from environment variables.
  * Invalid values throw, so a misconfigured service fails at startup
@@ -41,5 +55,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: parsePort(env.PORT),
     trackerUrl: parseUrl('TRACKER_URL', env.TRACKER_URL, DEFAULT_TRACKER_URL, ['http:', 'https:']),
     redisUrl: parseUrl('REDIS_URL', env.REDIS_URL, DEFAULT_REDIS_URL, ['redis:', 'rediss:']),
+    kafkaBrokers: parseBrokers(env.KAFKA_BROKERS),
   };
 }

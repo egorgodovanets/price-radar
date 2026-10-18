@@ -1,4 +1,5 @@
 services:
+  # Infrastructure: "docker compose up -d" (pnpm infra:up) starts only these.
   mongo:
     image: mongo:8
     ports: ["27017:27017"]
@@ -26,6 +27,69 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+
+  # Creates topics once Kafka is up, then exits. Explicit topics instead of auto-creation:
+  # the partition count is decided here, not by whichever client happens to write first.
+  kafka-init:
+    image: apache/kafka:4.3.1
+    depends_on:
+      kafka: { condition: service_healthy }
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command:
+      ["--bootstrap-server", "kafka:19092", "--create", "--if-not-exists",
+       "--topic", "price.changed", "--partitions", "3", "--replication-factor", "1"]
+
+  # Services: "docker compose --profile app up -d --build" (pnpm stack:up).
+  # Inside the compose network they reach each other by service name; Kafka via its internal listener.
+  tracker:
+    profiles: [app]
+    build: { context: ., args: { SERVICE: tracker } }
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      KAFKA_BROKERS: kafka:19092
+    ports: ["4001:4001"]
+    depends_on:
+      mongo: { condition: service_started }
+      kafka-init: { condition: service_completed_successfully }
+    # "Started" is not "ready": dependants wait until GET /health answers.
+    # The slim image has no curl, so Node itself makes the request.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4001/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  bff:
+    profiles: [app]
+    build: { context: ., args: { SERVICE: bff } }
+    environment:
+      TRACKER_URL: http://tracker:4001
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:19092
+    ports: ["4000:4000"]
+    depends_on:
+      tracker: { condition: service_healthy }
+      redis: { condition: service_started }
+      kafka-init: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  scraper:
+    profiles: [app]
+    build: { context: ., args: { SERVICE: scraper } }
+    environment:
+      TRACKER_URL: http://tracker:4001
+      SCRAPE_INTERVAL_MINUTES: 60
+    depends_on:
+      tracker: { condition: service_healthy }
+    restart: unless-stopped
 
 volumes:
   mongo_data:
