@@ -1,6 +1,6 @@
 # One recipe for every Node service; SERVICE picks which one:
 #   docker build --build-arg SERVICE=tracker -t price-radar-tracker .
-# docker compose (profile "app") builds tracker, bff and scraper with it.
+# docker compose (profile "app") builds tracker, bff, scraper and notifications with it.
 
 FROM node:24-bookworm AS build
 ARG SERVICE

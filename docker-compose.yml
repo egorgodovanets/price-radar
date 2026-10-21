@@ -91,5 +91,21 @@ services:
       tracker: { condition: service_healthy }
     restart: unless-stopped
 
+  notifications:
+    profiles: [app]
+    build: { context: ., args: { SERVICE: notifications } }
+    # TELEGRAM_BOT_TOKEN comes from the gitignored .env; the secret never goes into this file.
+    # Only one process may poll a bot: stop a local "pnpm dev" of this service while this one runs.
+    env_file:
+      - path: services/notifications/.env
+        required: false
+    environment:
+      TRACKER_URL: http://tracker:4001
+      KAFKA_BROKERS: kafka:19092
+    depends_on:
+      tracker: { condition: service_healthy }
+      kafka-init: { condition: service_completed_successfully }
+    restart: unless-stopped
+
 volumes:
   mongo_data:

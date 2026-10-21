@@ -136,7 +136,11 @@ importers:
         specifier: ^8.18.2
         version: 8.18.2
 
-  services/notifications: {}
+  services/notifications:
+    dependencies:
+      node-rdkafka:
+        specifier: ^3.6.1
+        version: 3.6.1
 
   services/scraper: {}
 
