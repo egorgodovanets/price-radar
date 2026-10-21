@@ -1,4 +1,5 @@
 import type { Message } from 'node-rdkafka';
+import { logger } from '../logger.js';
 import type { MessageSource } from './consumeLoop.js';
 import { PRICE_CHANGED_TOPIC } from './priceChanged.js';
 
@@ -39,7 +40,7 @@ export async function connectPriceChangedSource(brokers: string): Promise<KafkaS
     );
   });
   consumer.on('event.error', (error) => {
-    console.error('Kafka consumer error', error);
+    logger.error({ err: error, component: 'kafka' }, 'Kafka consumer error');
   });
   consumer.subscribe([PRICE_CHANGED_TOPIC]);
 

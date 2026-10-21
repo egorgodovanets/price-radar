@@ -1,8 +1,11 @@
 import type { LibrdKafkaError } from 'node-rdkafka';
+import { logger } from '../logger.js';
 import { PRICE_CHANGED_TOPIC, type PriceEvents } from './priceEvents.js';
 
 const CONNECT_TIMEOUT_MS = 10_000;
 const FLUSH_TIMEOUT_MS = 5_000;
+
+const log = logger.child({ component: 'kafka' });
 
 /**
  * Connects a Kafka producer for price.changed.
@@ -31,10 +34,10 @@ export async function connectKafkaPriceEvents(brokers: string): Promise<PriceEve
   producer.setPollInterval(100);
 
   producer.on('delivery-report', (error) => {
-    if (error) console.error('Kafka did not accept a price change', error);
+    if (error) log.error({ err: error }, 'Kafka did not accept a price change');
   });
   producer.on('event.error', (error) => {
-    console.error('Kafka producer error', error);
+    log.error({ err: error }, 'Kafka producer error');
   });
 
   return {
@@ -50,14 +53,14 @@ export async function connectKafkaPriceEvents(brokers: string): Promise<PriceEve
         );
       } catch (error) {
         // E.g. the local buffer is full because the broker has been down for long.
-        console.error('Failed to publish price change', error);
+        log.error({ err: error, productId: event.productId }, 'Failed to publish price change');
       }
     },
 
     close() {
       return new Promise((resolve) => {
         producer.flush(FLUSH_TIMEOUT_MS, (error: LibrdKafkaError | undefined) => {
-          if (error) console.error('Kafka flush failed, some price changes may be lost', error);
+          if (error) log.error({ err: error }, 'Kafka flush failed, some price changes may be lost');
           producer.disconnect(() => resolve());
         });
       });

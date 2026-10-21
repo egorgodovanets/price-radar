@@ -1,4 +1,5 @@
 import { parsePriceChangedMessage, type PriceChangedEvent } from './events/priceChanged.js';
+import type { Logger } from './logger.js';
 import type { Money } from './money.js';
 import { withRetry } from './retry.js';
 import type { TelegramClient } from './telegram/telegramClient.js';
@@ -7,7 +8,7 @@ import { TrackerError, type TrackedProduct, type TrackerClient } from './tracker
 export interface NotifyDeps {
   tracker: Pick<TrackerClient, 'listWatches' | 'getProduct'>;
   telegram: Pick<TelegramClient, 'sendMessage'>;
-  log: Pick<Console, 'log' | 'warn' | 'error'>;
+  log: Pick<Logger, 'info' | 'warn' | 'error'>;
   /** First pause between retries when Tracker fails; tests pass 0. */
   retryDelayMs?: number;
 }
@@ -59,7 +60,7 @@ export async function notifyWatchers(event: PriceChangedEvent, deps: NotifyDeps)
       sent++;
     } catch (error) {
       // E.g. 403: the user blocked the bot. Retrying would not help.
-      deps.log.error(`Alert to chat ${watch.chatId} failed`, error);
+      deps.log.error({ err: error, chatId: watch.chatId, productId: event.productId }, 'Alert failed');
     }
   }
   return sent;
@@ -81,7 +82,7 @@ export async function handlePriceChangedMessage(
 ): Promise<void> {
   const event = parsePriceChangedMessage(value);
   if (!event) {
-    deps.log.warn('Skipping a malformed price.changed message', value?.toString('utf8'));
+    deps.log.warn({ raw: value?.toString('utf8') }, 'Skipping a malformed price.changed message');
     return;
   }
 
@@ -92,9 +93,9 @@ export async function handlePriceChangedMessage(
       isRetryable,
       signal,
     });
-    if (sent > 0) deps.log.log(`Sent ${sent} alert(s) for product ${event.productId}`);
+    if (sent > 0) deps.log.info({ productId: event.productId, sent }, 'Alerts sent');
   } catch (error) {
     if (signal.aborted) throw error;
-    deps.log.error(`Giving up on the price change of product ${event.productId}`, error);
+    deps.log.error({ err: error, productId: event.productId }, 'Giving up on a price change');
   }
 }

@@ -69,7 +69,10 @@ describe('scrapeAll', () => {
     const summary = await scrapeAll(deps, new AbortController().signal);
 
     expect(summary).toEqual({ changed: 1, unchanged: 0, skipped: 0, failed: 1 });
-    expect(deps.log.warn).toHaveBeenCalledWith(expect.stringContaining('timeout'));
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      { err: new Error('timeout'), productId: 'p1', url: chalk.url },
+      'Could not check a product',
+    );
   });
 
   it('counts a Tracker refusal as a failure of that product', async () => {

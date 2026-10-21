@@ -1,3 +1,4 @@
+import type { Logger } from './logger.js';
 import type { Money } from './money.js';
 import type { Shop } from './shops/shop.js';
 import type { TrackedProduct, TrackerClient } from './tracker/trackerClient.js';
@@ -8,7 +9,7 @@ export interface ScrapeDeps {
   fetchPage: (url: string, signal: AbortSignal) => Promise<string>;
   /** Waits between two shop pages; tests pass a function that resolves at once. */
   pause: (signal: AbortSignal) => Promise<void>;
-  log: Pick<Console, 'info' | 'warn'>;
+  log: Pick<Logger, 'info' | 'warn'>;
 }
 
 export interface ScrapeSummary {
@@ -54,7 +55,7 @@ export async function scrapeAll(deps: ScrapeDeps, signal: AbortSignal): Promise<
       // Shutdown is not a failure of this product: stop the whole run.
       if (signal.aborted) throw error;
       summary.failed += 1;
-      deps.log.warn(`Could not check "${product.title}" (${product.url}): ${(error as Error).message}`);
+      deps.log.warn({ err: error, productId: product.id, url: product.url }, 'Could not check a product');
     }
   }
   return summary;
@@ -71,6 +72,9 @@ async function checkProduct(
   if (samePrice(product.currentPrice, price)) return 'unchanged';
 
   await deps.tracker.recordPrice(product.id, price);
-  deps.log.info(`"${product.title}": ${product.currentPrice?.amount ?? 'none'} -> ${price.amount} ${price.currency}`);
+  deps.log.info(
+    { productId: product.id, title: product.title, from: product.currentPrice?.amount ?? null, to: price.amount, currency: price.currency },
+    'Price changed',
+  );
   return 'changed';
 }

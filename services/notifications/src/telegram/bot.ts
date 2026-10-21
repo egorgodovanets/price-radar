@@ -1,7 +1,8 @@
 import { setTimeout as sleep } from 'node:timers/promises';
+import type { Logger } from '../logger.js';
 import type { TelegramClient, TelegramMessage } from './telegramClient.js';
 
-type Log = Pick<Console, 'error'>;
+type Log = Pick<Logger, 'error'>;
 
 /** What the bot answers to a message, or null to stay silent. */
 export function replyTo(message: TelegramMessage): string | null {
@@ -50,7 +51,7 @@ export function startBot(
         updates = await telegram.getUpdates(offset, options.pollTimeoutSeconds, signal);
       } catch (error) {
         if (signal.aborted) break;
-        log.error('Telegram getUpdates failed', error);
+        log.error({ err: error }, 'Telegram getUpdates failed');
         await sleep(options.retryDelayMs, undefined, { signal }).catch(() => undefined);
         continue;
       }
@@ -63,7 +64,7 @@ export function startBot(
         try {
           await telegram.sendMessage(String(update.message.chat.id), reply);
         } catch (error) {
-          log.error('Telegram reply failed', error);
+          log.error({ err: error, chatId: update.message.chat.id }, 'Telegram reply failed');
         }
       }
     }

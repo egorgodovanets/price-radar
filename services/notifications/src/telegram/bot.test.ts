@@ -67,7 +67,7 @@ describe('startBot', () => {
     await allRead;
     await bot.stop();
 
-    expect(log.error).toHaveBeenCalledWith('Telegram getUpdates failed', new Error('network'));
-    expect(log.error).toHaveBeenCalledWith('Telegram reply failed', new Error('blocked'));
+    expect(log.error).toHaveBeenCalledWith({ err: new Error('network') }, 'Telegram getUpdates failed');
+    expect(log.error).toHaveBeenCalledWith({ err: new Error('blocked'), chatId: 42 }, 'Telegram reply failed');
   });
 });

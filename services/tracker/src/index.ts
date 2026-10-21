@@ -1,4 +1,5 @@
 import { loadConfig } from './config.js';
+import { logger } from './logger.js';
 import { createServer } from './server.js';
 
 const config = loadConfig();
@@ -8,10 +9,8 @@ await new Promise<void>((resolve, reject) => {
   server.httpServer.once('error', reject);
   server.httpServer.listen(config.port, resolve);
 });
-console.log(`Tracker ready at http://localhost:${config.port}`);
-console.log(
-  config.kafkaBrokers ? `Publishing price changes to Kafka at ${config.kafkaBrokers}` : 'Kafka is off (KAFKA_BROKERS not set)',
-);
+// Fields, not a sentence: a log search can filter by port or kafka. The Mongo URL is left out (it may hold a password).
+logger.info({ port: config.port, kafka: config.kafkaBrokers ?? 'off' }, 'Tracker ready');
 
 let shuttingDown = false;
 
@@ -19,15 +18,15 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
 
-  console.log(`${signal} received, shutting down...`);
+  logger.info({ signal }, 'Shutting down');
   await server.stop();
-  console.log('Tracker stopped');
+  logger.info('Tracker stopped');
 }
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     shutdown(signal).catch((error: unknown) => {
-      console.error('Shutdown failed', error);
+      logger.error({ err: error }, 'Shutdown failed');
       process.exitCode = 1;
     });
   });

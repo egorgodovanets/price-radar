@@ -10,6 +10,8 @@ import { WebSocketServer } from 'ws';
 import type { Config } from './config.js';
 import type { GraphQLContext } from './context.js';
 import { TrackerAPI } from './dataSources/TrackerAPI.js';
+import { httpLogger } from './httpLogger.js';
+import { logger } from './logger.js';
 import { typeDefs } from './schema/typeDefs.generated.js';
 import { resolvers } from './schema/resolvers.generated.js';
 
@@ -52,6 +54,8 @@ export async function createServer({ trackerUrl, pubsub }: ServerOptions): Promi
 
   const apollo = new ApolloServer<GraphQLContext>({
     schema,
+    // Apollo's own messages (startup, errors inside the server) go to the same JSON log.
+    logger: logger.child({ component: 'apollo' }),
     plugins: [
       // On apollo.stop(): stop accepting connections, wait for in-flight requests, close the server.
       ApolloServerPluginDrainHttpServer({ httpServer }),
@@ -81,7 +85,12 @@ export async function createServer({ trackerUrl, pubsub }: ServerOptions): Promi
   });
 
   // express.json() parses the POST body into req.body, which Apollo reads the operation from.
-  app.use('/graphql', express.json(), expressMiddleware(apollo, { context: () => Promise.resolve(createContext()) }));
+  app.use(
+    '/graphql',
+    httpLogger,
+    express.json(),
+    expressMiddleware(apollo, { context: () => Promise.resolve(createContext()) }),
+  );
 
   return {
     httpServer,

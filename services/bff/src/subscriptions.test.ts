@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
 import { PubSub } from 'graphql-subscriptions';
 import { createClient, type Client } from 'graphql-ws';
 import WebSocket from 'ws';
+import { logger } from './logger.js';
 import { PRICE_CHANGED, type PriceChangedEvent } from './realtime/events.js';
 import { handlePriceChangedMessage } from './realtime/priceChangedConsumer.js';
 import { createServer, type BffServer } from './server.js';
@@ -95,7 +96,7 @@ describe('priceChanged subscription', () => {
   });
 
   it('skips a malformed message and keeps delivering the next ones', async () => {
-    const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const logWarn = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
     const subscription = subscribe(client!, {});
     await waitUntil(() => listeners() === 1);
 
@@ -106,8 +107,12 @@ describe('priceChanged subscription', () => {
     await sleep(50);
 
     expect(subscription.events).toEqual([{ data: { priceChanged: { ...change, previousPrice: null } } }]);
-    expect(consoleWarn).toHaveBeenCalledTimes(2);
-    consoleWarn.mockRestore();
+    expect(logWarn).toHaveBeenCalledTimes(2);
+    expect(logWarn).toHaveBeenCalledWith(
+      { component: 'kafka', raw: 'not json' },
+      'Skipping a malformed price.changed message',
+    );
+    logWarn.mockRestore();
     subscription.unsubscribe();
     await waitUntil(() => listeners() === 0);
   });
@@ -122,12 +127,15 @@ describe('Kafka message to pub/sub', () => {
   }
 
   it('only logs when Redis is down, so the consumer keeps running', async () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logError = jest.spyOn(logger, 'error').mockImplementation(() => undefined);
 
     expect(() => handlePriceChangedMessage(new BrokenPubSub(), kafkaMessage(change))).not.toThrow();
 
-    await waitUntil(() => consoleError.mock.calls.length === 1);
-    expect(consoleError).toHaveBeenCalledWith('Failed to publish price change', expect.any(Error));
-    consoleError.mockRestore();
+    await waitUntil(() => logError.mock.calls.length === 1);
+    expect(logError).toHaveBeenCalledWith(
+      { err: expect.any(Error), productId: change.productId },
+      'Failed to publish price change',
+    );
+    logError.mockRestore();
   });
 });

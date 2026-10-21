@@ -24,6 +24,8 @@
     "graphql-ws": "^6.3.0",
     "ioredis": "^5.11.1",
     "node-rdkafka": "^3.6.1",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
     "ws": "^8.22.0"
   },
   "devDependencies": {

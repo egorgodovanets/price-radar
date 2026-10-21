@@ -1,5 +1,6 @@
 import type { PubSubEngine } from 'graphql-subscriptions';
 import type { Money } from '../dataSources/tracker.types.js';
+import { logger } from '../logger.js';
 
 /** Pub/sub channel (a Redis channel in production) for price changes. */
 export const PRICE_CHANGED = 'price.changed';
@@ -19,6 +20,6 @@ export interface PriceChangedEvent {
  */
 export function publishPriceChanged(pubsub: PubSubEngine, event: PriceChangedEvent): void {
   pubsub.publish(PRICE_CHANGED, event).catch((error: unknown) => {
-    console.error('Failed to publish price change', error);
+    logger.error({ err: error, productId: event.productId }, 'Failed to publish price change');
   });
 }

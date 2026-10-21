@@ -24,7 +24,7 @@ function makeDeps(watches: Watch[]) {
       getProduct: jest.fn((_id: string) => Promise.resolve(product)),
     },
     telegram: { sendMessage: jest.fn((_chatId: string, _text: string) => Promise.resolve()) },
-    log: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    log: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
     retryDelayMs: 0,
   } satisfies NotifyDeps;
 }
@@ -79,7 +79,10 @@ describe('notifyWatchers', () => {
     deps.telegram.sendMessage.mockRejectedValueOnce(new Error('bot was blocked'));
 
     await expect(notifyWatchers(event(95, 105), deps)).resolves.toBe(1);
-    expect(deps.log.error).toHaveBeenCalledWith('Alert to chat 1 failed', new Error('bot was blocked'));
+    expect(deps.log.error).toHaveBeenCalledWith(
+      { err: new Error('bot was blocked'), chatId: '1', productId: 'p1' },
+      'Alert failed',
+    );
   });
 });
 
@@ -93,7 +96,7 @@ describe('handlePriceChangedMessage', () => {
     await handlePriceChangedMessage(message(event(95, 105)), deps, signal);
 
     expect(deps.telegram.sendMessage).toHaveBeenCalledTimes(1);
-    expect(deps.log.log).toHaveBeenCalledWith('Sent 1 alert(s) for product p1');
+    expect(deps.log.info).toHaveBeenCalledWith({ productId: 'p1', sent: 1 }, 'Alerts sent');
   });
 
   it('skips a malformed message with a warning', async () => {
@@ -122,6 +125,9 @@ describe('handlePriceChangedMessage', () => {
     await handlePriceChangedMessage(message(event(95, 105)), deps, signal);
 
     expect(deps.tracker.getProduct).toHaveBeenCalledTimes(1);
-    expect(deps.log.error).toHaveBeenCalledWith('Giving up on the price change of product p1', expect.any(TrackerError));
+    expect(deps.log.error).toHaveBeenCalledWith(
+      { err: expect.any(TrackerError), productId: 'p1' },
+      'Giving up on a price change',
+    );
   });
 });

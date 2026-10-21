@@ -1,5 +1,6 @@
 import type { PubSubEngine } from 'graphql-subscriptions';
 import type { Money } from '../dataSources/tracker.types.js';
+import { logger } from '../logger.js';
 import { publishPriceChanged, type PriceChangedEvent } from './events.js';
 
 /** Kafka topic Tracker publishes to (services/tracker/src/events/priceEvents.ts). */
@@ -54,7 +55,7 @@ export function handlePriceChangedMessage(pubsub: PubSubEngine, value: Buffer | 
   const event = parsePriceChangedMessage(value);
   if (!event) {
     // Skip, do not crash: one bad message must not block every message after it.
-    console.warn('Skipping a malformed price.changed message', value?.toString('utf8'));
+    logger.warn({ component: 'kafka', raw: value?.toString('utf8') }, 'Skipping a malformed price.changed message');
     return;
   }
   publishPriceChanged(pubsub, event);
@@ -90,7 +91,7 @@ export async function startPriceChangedConsumer(brokers: string, pubsub: PubSubE
 
   consumer.on('data', (message) => handlePriceChangedMessage(pubsub, message.value));
   consumer.on('event.error', (error) => {
-    console.error('Kafka consumer error', error);
+    logger.error({ component: 'kafka', err: error }, 'Kafka consumer error');
   });
 
   consumer.subscribe([PRICE_CHANGED_TOPIC]);
